@@ -76,32 +76,38 @@ Duration time_func(int iterations, Func&& func, Args&&... args)
 
 class stop_watch
 {
-  public:
+  private:
     using clock = std::chrono::steady_clock;
+
+  public:
     using duration = clock::duration;
+
+  private:
     using time_point = clock::time_point;
 
     time_point _start{};
     duration _elapsed{0};
     int _state{0};
 
-    void start()
+  public:
+    void start() noexcept
     {
         _start = clock::now();
         _state = 1;
     }
-    void stop()
+
+    void stop() noexcept
     {
         _elapsed = clock::now() - _start;
         _state = 2;
     }
 
-    void reset()
+    void reset() noexcept
     {
         *this = stop_watch{};
     }
 
-    duration elapsed()
+    duration elapsed() const noexcept
     {
         if (_state == 0)
             return duration{0};

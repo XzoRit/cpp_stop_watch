@@ -27,14 +27,14 @@ class auto_stop_watch
     const time_point _start{Clock::now()};
 };
 
-using steady_stop_watch = auto_stop_watch<std::chrono::steady_clock>;
-using system_stop_watch = auto_stop_watch<std::chrono::system_clock>;
+using auto_stop_watch_with_steady_clock = auto_stop_watch<std::chrono::steady_clock>;
+using auto_stop_watch_with_system_clock = auto_stop_watch<std::chrono::system_clock>;
 
-template <class StopWatch, class Func>
+template <class AutoStopWatch, class Func>
 class timed_func
 {
   public:
-    using duration = typename StopWatch::duration;
+    using duration = typename AutoStopWatch::duration;
 
     explicit timed_func(Func func) noexcept
         : _func{std::move(func)}
@@ -44,7 +44,7 @@ class timed_func
     template <class... Args>
     duration measure(int iterations, Args&&... args) const
     {
-        StopWatch watch{};
+        AutoStopWatch watch{};
         for (int i{}; i < iterations; ++i)
         {
             if constexpr (std::is_void_v<decltype(std::invoke(_func, std::forward<Args>(args)...))>)
@@ -64,16 +64,13 @@ class timed_func
     Func _func;
 };
 
-template <class Func>
-using steady_timed_func = timed_func<steady_stop_watch, Func>;
-
-template <class Func>
-using system_timed_func = timed_func<system_stop_watch, Func>;
-
-template <class Duration = std::chrono::milliseconds, class StopWatch = steady_stop_watch, class Func, class... Args>
+template <class Duration = std::chrono::milliseconds,
+          class AutoStopWatch = auto_stop_watch_with_steady_clock,
+          class Func,
+          class... Args>
 Duration time_func(Func&& func, int iterations, Args&&... args)
 {
-    timed_func<StopWatch, Func> _{std::forward<Func>(func)};
+    timed_func<AutoStopWatch, Func> _{std::forward<Func>(func)};
     return std::chrono::duration_cast<Duration>(_.measure(iterations, std::forward<Args>(args)...));
 }
 
@@ -148,8 +145,8 @@ BOOST_AUTO_TEST_CASE(test_stop_watch)
     constexpr const int iter{2};
 
     using us = std::chrono::microseconds;
-    using steady = steady_stop_watch;
-    using system = steady_stop_watch;
+    using steady = auto_stop_watch_with_steady_clock;
+    using system = auto_stop_watch_with_steady_clock;
 
     {
         BOOST_TEST(time_func((void (*)(int))(v1::foo), iter, 1).count() >= 250);

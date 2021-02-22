@@ -68,10 +68,10 @@ template <class Duration = std::chrono::milliseconds,
           class AutoStopWatch = auto_stop_watch_with_steady_clock,
           class Func,
           class... Args>
-Duration time_func(Func&& func, int iterations, Args&&... args)
+Duration time_func(int iterations, Func&& func, Args&&... args)
 {
-    timed_func<AutoStopWatch, Func> _{std::forward<Func>(func)};
-    return std::chrono::duration_cast<Duration>(_.measure(iterations, std::forward<Args>(args)...));
+    return std::chrono::duration_cast<Duration>(
+        timed_func<AutoStopWatch, Func>{std::forward<Func>(func)}.measure(iterations, std::forward<Args>(args)...));
 }
 
 class stop_watch
@@ -149,14 +149,14 @@ BOOST_AUTO_TEST_CASE(test_stop_watch)
     using system = auto_stop_watch_with_steady_clock;
 
     {
-        BOOST_TEST(time_func((void (*)(int))(v1::foo), iter, 1).count() >= 250);
-        BOOST_TEST((time_func<us>((void (*)(int))(v2::foo), iter, 1).count()) >= 100000);
-        BOOST_TEST((time_func<us, steady>((void (*)(int))(v2::foo), iter, 1).count()) >= 100000);
+        BOOST_TEST(time_func(iter, (void (*)(int))(v1::foo), 1).count() >= 250);
+        BOOST_TEST((time_func<us>(iter, (void (*)(int))(v2::foo), 1).count()) >= 100000);
+        BOOST_TEST((time_func<us, steady>(iter, (void (*)(int))(v2::foo), 1).count()) >= 100000);
     }
     {
-        BOOST_TEST(time_func((int (*)())(v1::foo), iter).count() >= (250ms).count());
-        BOOST_TEST((time_func<us>((int (*)())(v2::foo), iter).count()) >= (100000us).count());
-        BOOST_TEST((time_func<us, system>((int (*)())(v2::foo), iter).count()) >= (100000us).count());
+        BOOST_TEST(time_func(iter, (int (*)())(v1::foo)).count() >= (250ms).count());
+        BOOST_TEST((time_func<us>(iter, (int (*)())(v2::foo)).count()) >= (100000us).count());
+        BOOST_TEST((time_func<us, system>(iter, (int (*)())(v2::foo)).count()) >= (100000us).count());
     }
     {
         stop_watch w{};

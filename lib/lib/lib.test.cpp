@@ -1,3 +1,5 @@
+#include <lib/lib.hpp>
+
 #include <boost/test/unit_test.hpp>
 
 #include <chrono>
@@ -6,73 +8,13 @@
 #include <thread>
 #include <utility>
 
-using namespace std::chrono_literals;
-
 namespace
 {
+using namespace std::chrono_literals;
 
-template <class Clock>
-class auto_stop_watch
-{
-  public:
-    using duration = typename Clock::duration;
-
-    duration elapsed() const noexcept
-    {
-        return Clock::now() - _start;
-    }
-
-  private:
-    using time_point = typename Clock::time_point;
-    const time_point _start{Clock::now()};
-};
-
-using auto_stop_watch_with_steady_clock = auto_stop_watch<std::chrono::steady_clock>;
-using auto_stop_watch_with_system_clock = auto_stop_watch<std::chrono::system_clock>;
-
-template <class AutoStopWatch, class Func>
-class timed_func
-{
-  public:
-    using duration = typename AutoStopWatch::duration;
-
-    explicit timed_func(Func func) noexcept
-        : _func{std::move(func)}
-    {
-    }
-
-    template <class... Args>
-    duration measure(int iterations, Args&&... args) const
-    {
-        AutoStopWatch watch{};
-        for (int i{}; i < iterations; ++i)
-        {
-            if constexpr (std::is_void_v<decltype(std::invoke(_func, std::forward<Args>(args)...))>)
-            {
-                std::invoke(_func, std::forward<Args>(args)...);
-            }
-            else
-            {
-                volatile auto res = std::invoke(_func, std::forward<Args>(args)...);
-                static_cast<void>(res);
-            }
-        }
-        return watch.elapsed();
-    }
-
-  private:
-    Func _func;
-};
-
-template <class Duration = std::chrono::milliseconds,
-          class AutoStopWatch = auto_stop_watch_with_steady_clock,
-          class Func,
-          class... Args>
-Duration time_func(int iterations, Func&& func, Args&&... args)
-{
-    return std::chrono::duration_cast<Duration>(
-        timed_func<AutoStopWatch, Func>{std::forward<Func>(func)}.measure(iterations, std::forward<Args>(args)...));
-}
+using xzr::lib::auto_stop_watch_with_steady_clock;
+using xzr::lib::auto_stop_watch_with_system_clock;
+using xzr::lib::time_func;
 
 class stop_watch
 {
@@ -107,13 +49,14 @@ class stop_watch
         *this = stop_watch{};
     }
 
+    template <class Duration = duration>
     duration elapsed() const noexcept
     {
         if (_state == 0)
-            return duration{0};
+            return std::chrono::duration_cast<Duration>(duration{0});
         if (_state == 2)
-            return _elapsed;
-        return clock::now() - _start + _elapsed;
+            return std::chrono::duration_cast<Duration>(_elapsed);
+        return std::chrono::duration_cast<Duration>(clock::now() - _start + _elapsed);
     }
 };
 
@@ -152,7 +95,7 @@ BOOST_AUTO_TEST_CASE(test_stop_watch)
 
     using us = std::chrono::microseconds;
     using steady = auto_stop_watch_with_steady_clock;
-    using system = auto_stop_watch_with_steady_clock;
+    using system = auto_stop_watch_with_system_clock;
 
     {
         BOOST_TEST(time_func(iter, (void (*)(int))(v1::foo), 1).count() >= 250);

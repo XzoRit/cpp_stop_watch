@@ -85,16 +85,13 @@ Duration time_func(int iterations, Func&& func, Args&&... args)
         timed_func<AutoStopWatch, Func>{std::forward<Func>(func)}.measure(iterations, std::forward<Args>(args)...));
 }
 
-class stop_watch
+template <class Clock>
+class basic_stop_watch
 {
   private:
-    using clock = std::chrono::steady_clock;
-
-  public:
-    using duration = clock::duration;
-
-  private:
-    using time_point = clock::time_point;
+    using clock = Clock;
+    using time_point = typename clock::time_point;
+    using duration = typename clock::duration;
 
     time_point _start{};
     duration _elapsed{0};
@@ -115,11 +112,11 @@ class stop_watch
 
     void reset() noexcept
     {
-        *this = stop_watch{};
+        *this = basic_stop_watch{};
     }
 
-    template <class Duration = duration>
-    duration elapsed() const noexcept
+    template <class Duration = std::chrono::milliseconds>
+    Duration elapsed() const noexcept
     {
         if (_state == 0)
             return std::chrono::duration_cast<Duration>(duration{0});
@@ -128,6 +125,7 @@ class stop_watch
         return std::chrono::duration_cast<Duration>(clock::now() - _start + _elapsed);
     }
 };
+using stop_watch = basic_stop_watch<std::chrono::steady_clock>;
 } // namespace v1
 } // namespace lib
 } // namespace xzr

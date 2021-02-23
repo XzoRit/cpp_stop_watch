@@ -3,10 +3,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include <chrono>
-#include <functional>
 #include <iostream>
 #include <thread>
-#include <utility>
 
 namespace
 {
@@ -14,51 +12,8 @@ using namespace std::chrono_literals;
 
 using xzr::lib::auto_stop_watch_with_steady_clock;
 using xzr::lib::auto_stop_watch_with_system_clock;
+using xzr::lib::stop_watch;
 using xzr::lib::time_func;
-
-class stop_watch
-{
-  private:
-    using clock = std::chrono::steady_clock;
-
-  public:
-    using duration = clock::duration;
-
-  private:
-    using time_point = clock::time_point;
-
-    time_point _start{};
-    duration _elapsed{0};
-    int _state{0};
-
-  public:
-    void start() noexcept
-    {
-        _start = clock::now();
-        _state = 1;
-    }
-
-    void stop() noexcept
-    {
-        _elapsed = clock::now() - _start;
-        _state = 2;
-    }
-
-    void reset() noexcept
-    {
-        *this = stop_watch{};
-    }
-
-    template <class Duration = duration>
-    duration elapsed() const noexcept
-    {
-        if (_state == 0)
-            return std::chrono::duration_cast<Duration>(duration{0});
-        if (_state == 2)
-            return std::chrono::duration_cast<Duration>(_elapsed);
-        return std::chrono::duration_cast<Duration>(clock::now() - _start + _elapsed);
-    }
-};
 
 namespace v1
 {

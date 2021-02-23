@@ -6,6 +6,20 @@
 #include <iostream>
 #include <thread>
 
+namespace std::chrono
+{
+ostream& operator<<(ostream& o, milliseconds ms)
+{
+    o << ms.count() << "ms";
+    return o;
+}
+
+ostream& operator<<(ostream& o, microseconds us)
+{
+    o << us.count() << "us";
+    return o;
+}
+} // namespace std::chrono
 namespace
 {
 using namespace std::chrono_literals;
@@ -53,46 +67,46 @@ BOOST_AUTO_TEST_CASE(test_stop_watch)
     using system = auto_stop_watch_with_system_clock;
 
     {
-        BOOST_TEST(time_func(iter, (void (*)(int))(v1::foo), 1).count() >= 250);
-        BOOST_TEST((time_func<us>(iter, (void (*)(int))(v2::foo), 1).count()) >= 100000);
-        BOOST_TEST((time_func<us, steady>(iter, (void (*)(int))(v2::foo), 1).count()) >= 100000);
+        BOOST_TEST(time_func(iter, (void (*)(int))(v1::foo), 1) >= 500ms);
+        BOOST_TEST((time_func<us>(iter, (void (*)(int))(v2::foo), 1)) >= 200ms);
+        BOOST_TEST((time_func<us, steady>(iter, (void (*)(int))(v2::foo), 1)) >= 200ms);
     }
     {
-        BOOST_TEST(time_func(iter, (int (*)())(v1::foo)).count() >= (250ms).count());
-        BOOST_TEST((time_func<us>(iter, (int (*)())(v2::foo)).count()) >= (100000us).count());
-        BOOST_TEST((time_func<us, system>(iter, (int (*)())(v2::foo)).count()) >= (100000us).count());
+        BOOST_TEST(time_func(iter, (int (*)())(v1::foo)) >= 500ms);
+        BOOST_TEST((time_func<us>(iter, (int (*)())(v2::foo))) >= 200ms);
+        BOOST_TEST((time_func<us, system>(iter, (int (*)())(v2::foo))) >= 200ms);
     }
     {
         stop_watch w{};
-        using dur = stop_watch::duration;
+        using dur = std::chrono::milliseconds;
 
-        BOOST_TEST(w.elapsed().count() == dur{0}.count());
-        BOOST_TEST(w.elapsed().count() == dur{0}.count());
+        BOOST_TEST(w.elapsed() == dur{0});
+        BOOST_TEST(w.elapsed() == dur{0});
         w.start();
         std::this_thread::sleep_for(1ms);
-        const auto a{w.elapsed().count()};
-        BOOST_TEST(a > dur{0}.count());
+        const auto a{w.elapsed()};
+        BOOST_TEST(a > dur{0});
         std::this_thread::sleep_for(1ms);
-        const auto b{w.elapsed().count()};
+        const auto b{w.elapsed()};
         BOOST_TEST(b > a);
         w.stop();
-        const auto c{w.elapsed().count()};
+        const auto c{w.elapsed()};
         std::this_thread::sleep_for(1ms);
-        const auto d{w.elapsed().count()};
+        const auto d{w.elapsed()};
         BOOST_TEST(c == d);
         w.start();
         std::this_thread::sleep_for(1ms);
-        const auto e{w.elapsed().count()};
+        const auto e{w.elapsed()};
         BOOST_TEST(e > d);
         w.stop();
         w.reset();
-        BOOST_TEST(w.elapsed().count() == dur{0}.count());
-        BOOST_TEST(w.elapsed().count() == dur{0}.count());
+        BOOST_TEST(w.elapsed() == dur{0});
+        BOOST_TEST(w.elapsed() == dur{0});
         w.start();
         std::this_thread::sleep_for(1ms);
         w.reset();
-        BOOST_TEST(w.elapsed().count() == dur{0}.count());
-        BOOST_TEST(w.elapsed().count() == dur{0}.count());
+        BOOST_TEST(w.elapsed() == dur{0});
+        BOOST_TEST(w.elapsed() == dur{0});
     }
 }
 

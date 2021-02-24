@@ -1,2 +1,2 @@
-[[https://travis-ci.org/XzoRit/cpp_starter][https://travis-ci.org/XzoRit/cpp_stop_watch.svg?branch=master]]
+[[https://travis-ci.com/XzoRit/cpp_stop_watch.svg?branch%3Dmain][https://travis-ci.com/XzoRit/cpp_stop_watch.svg?branch=main]]
 * stop_watch

@@ -60,7 +60,7 @@ before_script:
   ############################################################################
   - cd ${BOOST_DIR}
   - |
-    b2 --with-program_options --with-test toolset=${TOOLSET} cxxflags="-std=c++17 ${CXXFLAGS}" || exit 1
+    b2 --with-program_options --with-test toolset=${TOOLSET} cxxstd=17 || exit 1
 
   ############################################################################
   # Go back to the root of the project and setup the build directory
@@ -88,4 +88,4 @@ script:
   ############################################################################
   - cd "${TRAVIS_BUILD_DIR}"
   - |
-    b2 toolset=${TOOLSET} cxxflags="-std=c++17 ${CXXFLAGS}" || exit 1
+    b2 toolset=${TOOLSET} cxxstd=17 || exit 1

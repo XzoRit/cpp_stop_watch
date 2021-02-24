@@ -71,7 +71,7 @@ before_script:
   # cmake
   ############################################################################
   - mkdir build_cmake
-  - cmake -B ./build_cmake -S ./
+  - cmake -B ./build_cmake -S ./ -DCMAKE_CXX_STANDARD=17
 
 script:
   - cd "${TRAVIS_BUILD_DIR}"
@@ -88,4 +88,4 @@ script:
   ############################################################################
   - cd "${TRAVIS_BUILD_DIR}"
   - |
-    b2 toolset=${TOOLSET} || exit 1
+    b2 toolset=${TOOLSET} cxxflags="-std=c++17 ${CXXFLAGS}" || exit 1

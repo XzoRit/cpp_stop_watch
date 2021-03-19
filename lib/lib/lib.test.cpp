@@ -24,10 +24,10 @@ namespace
 {
 using namespace std::chrono_literals;
 
-using xzr::lib::auto_stop_watch_with_steady_clock;
+using xzr::lib::auto_stop_watch;
 using xzr::lib::auto_stop_watch_with_system_clock;
+using xzr::lib::benchmark;
 using xzr::lib::stop_watch;
-using xzr::lib::time_func;
 
 namespace v1
 {
@@ -63,50 +63,54 @@ BOOST_AUTO_TEST_CASE(test_stop_watch)
     constexpr const int iter{2};
 
     using us = std::chrono::microseconds;
-    using steady = auto_stop_watch_with_steady_clock;
+    using steady = auto_stop_watch;
     using system = auto_stop_watch_with_system_clock;
 
     {
-        BOOST_TEST(time_func(iter, (void (*)(int))(v1::foo), 1) >= 500ms);
-        BOOST_TEST((time_func<us>(iter, (void (*)(int))(v2::foo), 1)) >= 200ms);
-        BOOST_TEST((time_func<us, steady>(iter, (void (*)(int))(v2::foo), 1)) >= 200ms);
+        BOOST_TEST(benchmark(iter, []() { v1::foo(1); }) >= 500ms);
+        BOOST_TEST(benchmark<us>(iter, []() { v2::foo(1); }) >= 200ms);
+        BOOST_TEST((benchmark<us, steady>(iter, []() { v2::foo(1); })) >= 200ms);
     }
     {
-        BOOST_TEST(time_func(iter, (int (*)())(v1::foo)) >= 500ms);
-        BOOST_TEST((time_func<us>(iter, (int (*)())(v2::foo))) >= 200ms);
-        BOOST_TEST((time_func<us, system>(iter, (int (*)())(v2::foo))) >= 200ms);
+        BOOST_TEST(benchmark(iter, []() { v1::foo(); }) >= 500ms);
+        BOOST_TEST(benchmark<us>(iter, []() { v2::foo(); }) >= 200ms);
+        BOOST_TEST((benchmark<us, system>(iter, []() { v2::foo(); })) >= 200ms);
     }
     {
         stop_watch w{};
         using dur = std::chrono::milliseconds;
 
-        BOOST_TEST(w.elapsed() == dur{0});
-        BOOST_TEST(w.elapsed() == dur{0});
+        BOOST_TEST(w.peek() == dur::zero());
+        BOOST_TEST(w.peek() == dur::zero());
         w.start();
         std::this_thread::sleep_for(1ms);
-        const auto a{w.elapsed()};
-        BOOST_TEST(a > dur{0});
+        const auto a{w.peek()};
+        BOOST_TEST(a > dur::zero());
         std::this_thread::sleep_for(1ms);
-        const auto b{w.elapsed()};
+        const auto b{w.peek()};
         BOOST_TEST(b > a);
         w.stop();
-        const auto c{w.elapsed()};
+        const auto c{w.peek()};
         std::this_thread::sleep_for(1ms);
-        const auto d{w.elapsed()};
+        const auto d{w.peek()};
         BOOST_TEST(c == d);
         w.start();
         std::this_thread::sleep_for(1ms);
-        const auto e{w.elapsed()};
+        const auto e{w.peek()};
         BOOST_TEST(e > d);
         w.stop();
         w.reset();
-        BOOST_TEST(w.elapsed() == dur{0});
-        BOOST_TEST(w.elapsed() == dur{0});
+        BOOST_TEST(w.peek() == dur::zero());
+        BOOST_TEST(w.peek() == dur::zero());
         w.start();
         std::this_thread::sleep_for(1ms);
         w.reset();
-        BOOST_TEST(w.elapsed() == dur{0});
-        BOOST_TEST(w.elapsed() == dur{0});
+        const auto f{w.peek()};
+        BOOST_TEST(f < e);
+        BOOST_TEST(f > dur::zero());
+        std::this_thread::sleep_for(1ms);
+        const auto g{w.peek()};
+        BOOST_TEST(g > f);
     }
 }
 

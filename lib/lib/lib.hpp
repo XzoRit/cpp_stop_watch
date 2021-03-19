@@ -21,7 +21,7 @@ int add(int a, int b);
 ///
 /// \tparam Clock Specifies which clock shall be used.
 template <class Clock>
-class auto_stop_watch
+class basic_auto_stop_watch
 {
   public:
     /// \brief Period of clock
@@ -36,35 +36,34 @@ class auto_stop_watch
     using time_point = typename Clock::time_point;
     const time_point _start{Clock::now()};
 };
-/// \brief Auto stop 3watch with std::chrono::steady_clock as time source.
-using auto_stop_watch_with_steady_clock = auto_stop_watch<std::chrono::steady_clock>;
+/// \brief Auto stop 3watch with std::chrono::high_resolution_clock as time source.
+using auto_stop_watch = basic_auto_stop_watch<std::chrono::high_resolution_clock>;
 /// \brief Auto stop watch with std::chrono::system_clock as time source.
-using auto_stop_watch_with_system_clock = auto_stop_watch<std::chrono::system_clock>;
+using auto_stop_watch_with_system_clock = basic_auto_stop_watch<std::chrono::system_clock>;
 
 template <class AutoStopWatch, class Func>
-class timed_func
+class benchmark_t
 {
   public:
     using duration = typename AutoStopWatch::duration;
 
-    explicit timed_func(Func func) noexcept
+    explicit benchmark_t(Func func) noexcept
         : _func{std::move(func)}
     {
     }
 
-    template <class... Args>
-    duration measure(int iterations, Args&&... args) const
+    duration measure(int iterations) const
     {
         AutoStopWatch watch{};
         for (int i{}; i < iterations; ++i)
         {
-            if constexpr (std::is_void_v<decltype(std::invoke(_func, std::forward<Args>(args)...))>)
+            if constexpr (std::is_void_v<decltype(std::invoke(_func))>)
             {
-                std::invoke(_func, std::forward<Args>(args)...);
+                std::invoke(_func);
             }
             else
             {
-                volatile auto res = std::invoke(_func, std::forward<Args>(args)...);
+                volatile auto res = std::invoke(_func);
                 static_cast<void>(res);
             }
         }
@@ -75,18 +74,37 @@ class timed_func
     Func _func;
 };
 
-template <class Duration = std::chrono::milliseconds,
-          class AutoStopWatch = auto_stop_watch_with_steady_clock,
-          class Func,
-          class... Args>
-Duration time_func(int iterations, Func&& func, Args&&... args)
+template <class Duration = std::chrono::milliseconds, class AutoStopWatch = auto_stop_watch, class Func>
+Duration benchmark(int iterations, Func&& func)
 {
     return std::chrono::duration_cast<Duration>(
-        timed_func<AutoStopWatch, Func>{std::forward<Func>(func)}.measure(iterations, std::forward<Args>(args)...));
+        benchmark_t<AutoStopWatch, Func>{std::forward<Func>(func)}.measure(iterations));
 }
 
+class stop_watch_state
+{
+  private:
+    bool _running{false};
+
+  public:
+    void on_start() noexcept
+    {
+        _running = true;
+    }
+
+    void on_stop() noexcept
+    {
+        _running = false;
+    }
+
+    bool running() const noexcept
+    {
+        return _running;
+    }
+};
+
 template <class Clock>
-class basic_stop_watch
+class basic_stop_watch : private stop_watch_state
 {
   private:
     using clock = Clock;
@@ -94,38 +112,37 @@ class basic_stop_watch
     using duration = typename clock::duration;
 
     time_point _start{};
-    duration _elapsed{0};
-    int _state{0};
+    duration _elapsed{duration::zero()};
 
   public:
     void start() noexcept
     {
         _start = clock::now();
-        _state = 1;
+        this->on_start();
     }
 
     void stop() noexcept
     {
         _elapsed = clock::now() - _start;
-        _state = 2;
+        this->on_stop();
     }
 
     void reset() noexcept
     {
-        *this = basic_stop_watch{};
+        _elapsed = duration::zero();
     }
 
     template <class Duration = std::chrono::milliseconds>
-    Duration elapsed() const noexcept
+    Duration peek() const noexcept
     {
-        if (_state == 0)
-            return std::chrono::duration_cast<Duration>(duration{0});
-        if (_state == 2)
-            return std::chrono::duration_cast<Duration>(_elapsed);
-        return std::chrono::duration_cast<Duration>(clock::now() - _start + _elapsed);
+        if (this->running())
+            return std::chrono::duration_cast<Duration>(clock::now() - _start + _elapsed);
+        return std::chrono::duration_cast<Duration>(_elapsed);
     }
 };
-using stop_watch = basic_stop_watch<std::chrono::steady_clock>;
+
+using stop_watch = basic_stop_watch<std::chrono::high_resolution_clock>;
+using stop_watch_with_system_clock = basic_stop_watch<std::chrono::system_clock>;
 } // namespace v1
 } // namespace lib
 } // namespace xzr

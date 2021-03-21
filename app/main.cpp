@@ -5,10 +5,31 @@
 #include <iostream>
 
 namespace po = boost::program_options;
-
+namespace
+{
+void run()
+{
+    xzr::chrono::stop_watch w{};
+    while (true)
+    {
+        char c{};
+        std::cin >> c;
+        if (c == 'q')
+            return;
+        if (c == 'a')
+            w.start();
+        else if (c == 'b')
+            w.stop();
+        else if (c == 'c')
+            w.reset();
+        else if (c == 'd')
+            std::cout << w.peek().count() << '\n';
+    }
+}
+} // namespace
 int main(int ac, char* av[])
 {
-    std::cout << "Hello app\n";
+    std::cout << "Hello stop_watch\n";
 
     try
     {
@@ -22,7 +43,9 @@ int main(int ac, char* av[])
         if (vm.count("help"))
         {
             std::cout << desc << "\n";
+            return 0;
         }
+        run();
     }
     catch (const std::exception& e)
     {
@@ -34,5 +57,5 @@ int main(int ac, char* av[])
         std::cerr << "Exception of unknown type!\n";
     }
 
-    return xzr::lib::add(0, 0);
+    return 0;
 }

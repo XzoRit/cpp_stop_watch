@@ -6,113 +6,86 @@
 #include <iostream>
 #include <thread>
 
-namespace std::chrono
+namespace std
+{
+namespace chrono
 {
 ostream& operator<<(ostream& o, milliseconds ms)
 {
     o << ms.count() << "ms";
     return o;
 }
-
 ostream& operator<<(ostream& o, microseconds us)
 {
     o << us.count() << "us";
     return o;
 }
-} // namespace std::chrono
+ostream& operator<<(ostream& o, nanoseconds ns)
+{
+    o << ns.count() << "ns";
+    return o;
+}
+} // namespace chrono
+} // namespace std
 namespace
 {
 using namespace std::chrono_literals;
-
-using xzr::lib::auto_stop_watch;
-using xzr::lib::auto_stop_watch_with_system_clock;
-using xzr::lib::benchmark;
-using xzr::lib::stop_watch;
-
-namespace v1
+BOOST_AUTO_TEST_SUITE(test_chrono)
+BOOST_AUTO_TEST_SUITE(test_stop_watch)
+BOOST_AUTO_TEST_CASE(not_running_on_construction)
 {
-void foo(int a)
-{
-    std::this_thread::sleep_for(250ms * a);
+    xzr::chrono::stop_watch w{};
+    BOOST_TEST(!w.running());
+    BOOST_TEST(w.peek() == xzr::chrono::stop_watch::duration::zero());
 }
-
-int foo()
+BOOST_AUTO_TEST_CASE(construction_with_auto_start)
 {
-    std::this_thread::sleep_for(250ms);
-    return (250ms).count();
+    xzr::chrono::stop_watch w{xzr::chrono::auto_start};
+    BOOST_TEST(w.running());
+    BOOST_TEST(w.peek() > xzr::chrono::stop_watch::duration::zero());
 }
-} // namespace v1
-namespace v2
+BOOST_AUTO_TEST_CASE(start)
 {
-void foo(int a)
-{
-    std::this_thread::sleep_for(100ms * a);
+    xzr::chrono::stop_watch w{};
+    w.start();
+    BOOST_TEST(w.running());
+    const auto a{w.peek()};
+    BOOST_TEST(a > xzr::chrono::stop_watch::duration::zero());
 }
-
-int foo()
+BOOST_AUTO_TEST_CASE(stop)
 {
-    std::this_thread::sleep_for(100ms);
-    return (100ms).count();
+    xzr::chrono::stop_watch w{xzr::chrono::auto_start};
+    w.stop();
+    BOOST_TEST(!w.running());
+    BOOST_TEST(w.peek() > xzr::chrono::stop_watch::duration::zero());
 }
-} // namespace v2
-
-BOOST_AUTO_TEST_SUITE(lib_tests)
-
-BOOST_AUTO_TEST_CASE(test_stop_watch)
+BOOST_AUTO_TEST_CASE(start_running_stop_watch)
 {
-    constexpr const int iter{2};
-
-    using us = std::chrono::microseconds;
-    using steady = auto_stop_watch;
-    using system = auto_stop_watch_with_system_clock;
-
-    {
-        BOOST_TEST(benchmark(iter, []() { v1::foo(1); }) >= 500ms);
-        BOOST_TEST(benchmark<us>(iter, []() { v2::foo(1); }) >= 200ms);
-        BOOST_TEST((benchmark<us, steady>(iter, []() { v2::foo(1); })) >= 200ms);
-    }
-    {
-        BOOST_TEST(benchmark(iter, []() { v1::foo(); }) >= 500ms);
-        BOOST_TEST(benchmark<us>(iter, []() { v2::foo(); }) >= 200ms);
-        BOOST_TEST((benchmark<us, system>(iter, []() { v2::foo(); })) >= 200ms);
-    }
-    {
-        stop_watch w{};
-        using dur = std::chrono::milliseconds;
-
-        BOOST_TEST(w.peek() == dur::zero());
-        BOOST_TEST(w.peek() == dur::zero());
-        w.start();
-        std::this_thread::sleep_for(1ms);
-        const auto a{w.peek()};
-        BOOST_TEST(a > dur::zero());
-        std::this_thread::sleep_for(1ms);
-        const auto b{w.peek()};
-        BOOST_TEST(b > a);
-        w.stop();
-        const auto c{w.peek()};
-        std::this_thread::sleep_for(1ms);
-        const auto d{w.peek()};
-        BOOST_TEST(c == d);
-        w.start();
-        std::this_thread::sleep_for(1ms);
-        const auto e{w.peek()};
-        BOOST_TEST(e > d);
-        w.stop();
-        w.reset();
-        BOOST_TEST(w.peek() == dur::zero());
-        BOOST_TEST(w.peek() == dur::zero());
-        w.start();
-        std::this_thread::sleep_for(1ms);
-        w.reset();
-        const auto f{w.peek()};
-        BOOST_TEST(f < e);
-        BOOST_TEST(f > dur::zero());
-        std::this_thread::sleep_for(1ms);
-        const auto g{w.peek()};
-        BOOST_TEST(g > f);
-    }
+    xzr::chrono::stop_watch w{xzr::chrono::auto_start};
+    BOOST_REQUIRE_THROW(w.start(), std::runtime_error);
 }
-
+BOOST_AUTO_TEST_CASE(stop_stopped_stop_watch)
+{
+    xzr::chrono::stop_watch w{};
+    BOOST_REQUIRE_THROW(w.stop(), std::runtime_error);
+}
+BOOST_AUTO_TEST_CASE(reset_stopped_watch)
+{
+    xzr::chrono::stop_watch w{xzr::chrono::auto_start};
+    w.stop();
+    BOOST_TEST(w.peek() > xzr::chrono::stop_watch::duration::zero());
+    w.reset();
+    BOOST_TEST(w.peek() == xzr::chrono::stop_watch::duration::zero());
+}
+BOOST_AUTO_TEST_CASE(reset_running_watch)
+{
+    xzr::chrono::stop_watch w{xzr::chrono::auto_start};
+    const auto a{w.peek()};
+    w.reset();
+    const auto b{w.peek()};
+    BOOST_TEST(b > xzr::chrono::stop_watch::duration::zero());
+    BOOST_TEST(b < a);
+}
+BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace

@@ -25,6 +25,18 @@ target_include_directories(
     ${inc_dir}
 )
 
+target_compile_features(
+  lib
+  PUBLIC
+    cxx_std_11
+)
+
+target_link_libraries(
+  lib
+  PRIVATE
+    Boost::boost
+)
+
 add_library(
   lib::lib
   ALIAS
@@ -40,6 +52,12 @@ target_sources(
   PRIVATE
   "${src_dir}/lib.test.cpp"
   "${src_dir}/main.test.cpp"
+)
+
+target_compile_features(
+  lib_test
+  PUBLIC
+    cxx_std_11
 )
 
 target_link_libraries(

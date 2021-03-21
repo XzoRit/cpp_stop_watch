@@ -8,6 +8,12 @@ target_sources(
   "main.cpp"
 )
 
+target_compile_features(
+  app_exe
+  PUBLIC
+    cxx_std_11
+)
+
 target_link_libraries(
   app_exe
   PRIVATE

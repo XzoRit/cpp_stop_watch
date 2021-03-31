@@ -11,21 +11,6 @@ namespace xzr
 {
 namespace chrono
 {
-inline namespace v1
-{
-/// \brief Tag type for starting a stopwatch on creation.
-struct auto_start_t
-{
-};
-/// \brief Stopwatch created with this value will start automatically.
-constexpr const auto_start_t auto_start{};
-} // namespace v1
-} // namespace chrono
-} // namespace xzr
-namespace xzr
-{
-namespace chrono
-{
 namespace impl
 {
 class stop_watch_state
@@ -47,6 +32,9 @@ class stop_watch_state
         return _running;
     }
 };
+struct auto_start_t
+{
+};
 template <class StopWatch, class Func>
 class benchmark_t
 {
@@ -62,7 +50,7 @@ class benchmark_t
     }
     duration measure(int iterations) noexcept
     {
-        stop_watch watch{auto_start};
+        stop_watch watch{auto_start_t{}};
         for (int i{}; i < iterations; ++i)
         {
             invoke(typename std::is_void<decltype(boost::hof::apply(_func))>::type{});
@@ -91,6 +79,10 @@ namespace chrono
 {
 inline namespace v1
 {
+/// \brief Tag type for starting a stopwatch on creation.
+using auto_start_t = impl::auto_start_t;
+/// \brief Stopwatch created with this value will start automatically.
+constexpr const auto_start_t auto_start{};
 /// \brief Models a physical stopwatch to measure how much time elapsed between starting and stopping it.
 ///
 /// The precision of this stopwatch depends on the one from the specified clock but a coarser precision can be specified

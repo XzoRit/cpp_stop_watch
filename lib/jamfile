@@ -26,6 +26,7 @@ constant sources
 lib lib
     : $(sources)
     : <include>$(inc_dir)
+      <use>/boost//headers
     :
     : <include>$(inc_dir)
     ;

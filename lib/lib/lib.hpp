@@ -7,6 +7,13 @@
 #include <stdexcept>
 #include <utility>
 
+#if defined(BOOST_CHRONO_HAS_PROCESS_CLOCK)
+#include <boost/chrono/process_cpu_clocks.hpp>
+#endif
+#if defined(BOOST_CHRONO_HAS_THREAD_CLOCK)
+#include <boost/chrono/thread_clock.hpp>
+#endif
+
 namespace xzr
 {
 namespace chrono
@@ -178,6 +185,22 @@ class basic_stop_watch : private impl::stop_watch_state
 using stop_watch = basic_stop_watch<std::chrono::high_resolution_clock>;
 //// \brief Stopwatch using std::chrono::steady_clock as a source.
 using stop_watch_with_steady_clock = basic_stop_watch<std::chrono::steady_clock>;
+//// \brief Stopwatch using std::chrono::system_clock as a source.
+using stop_watch_with_system_clock = basic_stop_watch<std::chrono::system_clock>;
+#if defined(BOOST_CHRONO_HAS_THREAD_CLOCK)
+//// \brief Stopwatch using boost::chrono::thread_clock as a source.
+using stop_watch_with_boost_thread_clock = basic_stop_watch<boost::chrono::thread_clock>;
+#endif
+#if defined(BOOST_CHRONO_HAS_PROCESS_CLOCKS)
+//// \brief Stopwatch using boost::chrono::process_real_cpu_clock as a source.
+using stop_watch_with_boost_process_real_cpu_clock = basic_stop_watch<boost::chrono::process_real_cpu_clock>;
+//// \brief Stopwatch using boost::chrono::process_user_cpu_clock as a source.
+using stop_watch_with_boost_process_user_cpu_clock = basic_stop_watch<boost::chrono::process_user_cpu_clock>;
+//// \brief Stopwatch using boost::chrono::process_system_cpu_clock as a source.
+using stop_watch_with_boost_process_system_cpu_clock = basic_stop_watch<boost::chrono::process_system_cpu_clock>;
+//// \brief Stopwatch using boost::chrono::process_cpu_clock as a source.
+using stop_watch_with_boost_process_cpu_clock = basic_stop_watch<boost::chrono::process_cpu_clock>;
+#endif
 /// \brief Named parameter for the sepcifying the amount of iterations.
 class iterations
 {

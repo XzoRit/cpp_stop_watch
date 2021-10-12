@@ -51,8 +51,8 @@ class benchmark_t
   public:
     using duration = typename stop_watch::duration;
 
-    explicit benchmark_t(Func func) noexcept
-        : _func{std::move(func)}
+    explicit benchmark_t(Func&& func) noexcept
+        : _func{std::forward<Func>(func)}
     {
     }
     duration measure(int iterations) noexcept
@@ -229,6 +229,21 @@ Duration benchmark(iterations n, Func&& func)
     return std::chrono::duration_cast<Duration>(
         impl::benchmark_t<StopWatch, Func>{std::forward<Func>(func)}.measure(n.get()));
 }
+#if defined(__GNUC__) or defined(__clang__)
+template <class T>
+void do_not_optimize(T&& t)
+{
+    asm volatile("" ::"m"(t) : "memory");
+}
+#else
+#pragma optimize("", off)
+template <class T>
+void do_not_optimize(T&& t)
+{
+    reinterpret_cast<char volatile&>(t) = reinterpret_cast<char const volatile&>(t);
+}
+#pragma optimize("", on)
+#endif
 } // namespace v1
 } // namespace chrono
 } // namespace xzr

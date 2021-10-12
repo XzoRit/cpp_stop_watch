@@ -4,22 +4,28 @@
 
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 namespace std
 {
 namespace chrono
 {
-ostream& operator<<(ostream& o, milliseconds ms)
+ostream& boost_test_print_type(ostream& o, const seconds& s)
+{
+    o << s.count() << "sec";
+    return o;
+}
+ostream& boost_test_print_type(ostream& o, const milliseconds& ms)
 {
     o << ms.count() << "ms";
     return o;
 }
-ostream& operator<<(ostream& o, microseconds us)
+ostream& boost_test_print_type(ostream& o, const microseconds& us)
 {
     o << us.count() << "us";
     return o;
 }
-ostream& operator<<(ostream& o, nanoseconds ns)
+ostream& boost_test_print_type(ostream& o, const nanoseconds& ns)
 {
     o << ns.count() << "ns";
     return o;
@@ -32,6 +38,7 @@ using namespace std::chrono_literals;
 using xzr::chrono::auto_start;
 using xzr::chrono::auto_start_t;
 using xzr::chrono::benchmark;
+using xzr::chrono::do_not_optimize;
 using xzr::chrono::iterations;
 using xzr::chrono::stop_watch;
 BOOST_AUTO_TEST_SUITE(test_chrono)
@@ -130,6 +137,15 @@ BOOST_AUTO_TEST_CASE(non_void_function)
 {
     benchmark(iterations{1}, []() { return 552; });
 }
+BOOST_AUTO_TEST_CASE(function_with_side_effect)
+{
+    int i{0};
+    benchmark(iterations{1}, [&]() mutable {
+        ++i;
+        do_not_optimize(i);
+    });
+    BOOST_TEST(i == 1);
+}
 BOOST_AUTO_TEST_CASE(uses_given_stop_watch)
 {
     struct spy_stop_watch
@@ -145,6 +161,24 @@ BOOST_AUTO_TEST_CASE(uses_given_stop_watch)
     };
     BOOST_TEST((benchmark<spy_stop_watch::duration, spy_stop_watch>(iterations{1}, []() {})) ==
                spy_stop_watch::duration{552});
+}
+BOOST_AUTO_TEST_CASE(measure_sleep_time)
+{
+    const auto& sleep_dur{250ms};
+    {
+        const auto& a{benchmark(iterations{1}, [&sleep_dur]() { std::this_thread::sleep_for(sleep_dur); })};
+        BOOST_TEST(a >= sleep_dur);
+    }
+    {
+        const auto& a{benchmark<std::chrono::milliseconds>(iterations{1},
+                                                           [&sleep_dur]() { std::this_thread::sleep_for(sleep_dur); })};
+        BOOST_TEST(a >= sleep_dur);
+    }
+    {
+        const auto& a{
+            benchmark<std::chrono::seconds>(iterations{1}, [&sleep_dur]() { std::this_thread::sleep_for(sleep_dur); })};
+        BOOST_TEST(a >= 0s);
+    }
 }
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

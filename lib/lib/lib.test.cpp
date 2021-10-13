@@ -63,6 +63,11 @@ BOOST_AUTO_TEST_CASE(start)
     const auto a{w.peek()};
     BOOST_TEST(a > stop_watch::duration::zero());
 }
+BOOST_AUTO_TEST_CASE(start_running_stop_watch)
+{
+    stop_watch w{auto_start};
+    BOOST_REQUIRE_THROW(w.start(), std::runtime_error);
+}
 BOOST_AUTO_TEST_CASE(stop)
 {
     stop_watch w{auto_start};
@@ -70,15 +75,25 @@ BOOST_AUTO_TEST_CASE(stop)
     BOOST_TEST(!w.is_running());
     BOOST_TEST(w.peek() > stop_watch::duration::zero());
 }
-BOOST_AUTO_TEST_CASE(start_running_stop_watch)
-{
-    stop_watch w{auto_start};
-    BOOST_REQUIRE_THROW(w.start(), std::runtime_error);
-}
 BOOST_AUTO_TEST_CASE(stop_stopped_stop_watch)
 {
     stop_watch w{};
     BOOST_REQUIRE_THROW(w.stop(), std::runtime_error);
+}
+BOOST_AUTO_TEST_CASE(start_stop_peek_stop_watch)
+{
+    stop_watch w{};
+    w.start();
+    w.stop();
+    const auto a{w.peek()};
+    w.start();
+    w.stop();
+    const auto b{w.peek()};
+    BOOST_TEST(a < b);
+    w.start();
+    w.stop();
+    const auto c{w.peek()};
+    BOOST_TEST(b < c);
 }
 BOOST_AUTO_TEST_CASE(reset_stopped_watch)
 {

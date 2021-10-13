@@ -39,9 +39,6 @@ class stop_watch_state
         return _running;
     }
 };
-struct auto_start_t
-{
-};
 } // namespace impl
 } // namespace chrono
 } // namespace xzr
@@ -52,18 +49,21 @@ namespace chrono
 inline namespace v1
 {
 /// \brief Tag type for starting a stopwatch on creation.
-using auto_start_t = impl::auto_start_t;
+struct auto_start_t
+{
+};
 /// \brief Stopwatch created with this value will start automatically.
 constexpr const auto_start_t auto_start{};
 /// \brief Models a physical stopwatch to measure how much time elapsed between starting and stopping it.
 ///
 /// The precision of this stopwatch depends on the one from the specified clock but a coarser precision can be specified
 /// on each call to \ref peek. To start the stopwatch you can either call start on a default constructed stopwatch or
-/// use \ref auto_start_t on construction for starting it immediately. After calling \ref stop the elapsed
+/// use auto_start on construction for starting it immediately. After calling \ref stop the elapsed
 /// time can be retrieved witth \ref peek. It is ok to call \ref peek on a running stopwatch to get a snapshot of the
 /// elapsed time. \ref reset can be used to set the elapsed time to zero.
 ///
-/// \note Calling start or reset on a running stopwatch and stop on a stopped stopwatch is an error and throws.
+/// \note Calling \ref start or \ref reset on a running stopwatch and \ref stop on a stopped stopwatch
+/// is an error and throws.
 ///
 /// @tparam Clock Specifies the source for measuring how much time elapsed. It has to model the [named requirement
 /// Clock](https://en.cppreference.com/w/cpp/named_req/Clock)
@@ -82,7 +82,7 @@ class basic_stop_watch : private impl::stop_watch_state
     basic_stop_watch() = default;
     /// \brief Stopwatch is started immediately.
     ///
-    /// \post running returns true.
+    /// \post is_running returns true.
     explicit basic_stop_watch(auto_start_t)
     {
         start();
@@ -97,7 +97,8 @@ class basic_stop_watch : private impl::stop_watch_state
     {
         if (running())
             throw std::runtime_error{"start was called on an already started stopwatch"};
-        _start = clock::now();
+        if (is_reset())
+            _start = clock::now();
         on_start();
     }
     /// \brief Stops the stopwatch.
@@ -145,6 +146,10 @@ class basic_stop_watch : private impl::stop_watch_state
     }
 
   private:
+    bool is_reset() const noexcept
+    {
+        return _elapsed == duration::zero();
+    }
     time_point _start{};
     duration _elapsed{duration::zero()};
 };

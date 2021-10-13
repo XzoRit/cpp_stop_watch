@@ -91,11 +91,7 @@ BOOST_AUTO_TEST_CASE(reset_stopped_watch)
 BOOST_AUTO_TEST_CASE(reset_running_watch)
 {
     stop_watch w{auto_start};
-    const auto a{w.peek()};
-    w.reset();
-    const auto b{w.peek()};
-    BOOST_TEST(b > stop_watch::duration::zero());
-    BOOST_TEST(b < a);
+    BOOST_REQUIRE_THROW(w.reset(), std::runtime_error);
 }
 BOOST_AUTO_TEST_CASE(peek)
 {
@@ -146,21 +142,34 @@ BOOST_AUTO_TEST_CASE(function_with_side_effect)
     });
     BOOST_TEST(i == 1);
 }
+struct spy_stop_watch
+{
+    using duration = std::chrono::microseconds;
+    explicit spy_stop_watch(auto_start_t)
+    {
+        _call_seq += "_auto_start_";
+    }
+    void start()
+    {
+        _call_seq += "_start_";
+    }
+    void stop()
+    {
+        _call_seq += "_stop_";
+    }
+    duration peek() const noexcept
+    {
+        _call_seq += "_peek_";
+        return duration{};
+    }
+    static std::string _call_seq;
+};
+std::string spy_stop_watch::_call_seq{};
+
 BOOST_AUTO_TEST_CASE(uses_given_stop_watch)
 {
-    struct spy_stop_watch
-    {
-        using duration = std::chrono::microseconds;
-        explicit spy_stop_watch(auto_start_t)
-        {
-        }
-        duration peek() const noexcept
-        {
-            return duration{552};
-        }
-    };
-    BOOST_TEST((benchmark<spy_stop_watch::duration, spy_stop_watch>(iterations{1}, []() {})) ==
-               spy_stop_watch::duration{552});
+    benchmark<spy_stop_watch::duration, spy_stop_watch>(iterations{1}, []() {});
+    BOOST_TEST(spy_stop_watch::_call_seq == "_auto_start__stop__peek_");
 }
 BOOST_AUTO_TEST_CASE(measure_sleep_time)
 {

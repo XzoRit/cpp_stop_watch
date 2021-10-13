@@ -42,41 +42,6 @@ class stop_watch_state
 struct auto_start_t
 {
 };
-template <class StopWatch, class Func>
-class benchmark_t
-{
-  private:
-    using stop_watch = StopWatch;
-
-  public:
-    using duration = typename stop_watch::duration;
-
-    explicit benchmark_t(Func&& func) noexcept
-        : _func{std::forward<Func>(func)}
-    {
-    }
-    duration measure(int iterations) noexcept
-    {
-        stop_watch watch{auto_start_t{}};
-        for (int i{}; i < iterations; ++i)
-        {
-            invoke(typename std::is_void<decltype(boost::hof::apply(_func))>::type{});
-        }
-        return watch.peek();
-    }
-
-  private:
-    void invoke(std::true_type) noexcept
-    {
-        boost::hof::apply(_func);
-    }
-    void invoke(std::false_type) noexcept
-    {
-        volatile auto res = boost::hof::apply(_func);
-        static_cast<void>(res);
-    }
-    Func _func;
-};
 } // namespace impl
 } // namespace chrono
 } // namespace xzr
@@ -96,10 +61,9 @@ constexpr const auto_start_t auto_start{};
 /// on each call to \ref peek. To start the stopwatch you can either call start on a default constructed stopwatch or
 /// use \ref auto_start_t on construction for starting it immediately. After calling \ref stop the elapsed
 /// time can be retrieved witth \ref peek. It is ok to call \ref peek on a running stopwatch to get a snapshot of the
-/// elapsed time. \ref reset can be used to set the elapsed time to zero. This works on a running aswell as on a stopped
-/// stopwatch.
+/// elapsed time. \ref reset can be used to set the elapsed time to zero.
 ///
-/// \note Calling start on a running stopwatch and stop on a stopped stopwatch is an error and throws.
+/// \note Calling start or reset on a running stopwatch and stop on a stopped stopwatch is an error and throws.
 ///
 /// @tparam Clock Specifies the source for measuring how much time elapsed. It has to model the [named requirement
 /// Clock](https://en.cppreference.com/w/cpp/named_req/Clock)
@@ -132,7 +96,7 @@ class basic_stop_watch : private impl::stop_watch_state
     void start()
     {
         if (running())
-            throw std::runtime_error{"start was called when the stopwatch was already running"};
+            throw std::runtime_error{"start was called on an already started stopwatch"};
         _start = clock::now();
         on_start();
     }
@@ -145,17 +109,20 @@ class basic_stop_watch : private impl::stop_watch_state
     void stop()
     {
         if (!running())
-            throw std::runtime_error{"stop was called when the stopwatch was not running"};
+            throw std::runtime_error{"stop was called on an already stopped stopwatch"};
         _elapsed = clock::now() - _start;
         on_stop();
     }
     /// \brief Reset elapsed time to zero.
     ///
-    /// Can be called on a stoppped aswell as on a running stopwatch.
-    void reset() noexcept
+    /// \pre \ref is_running returns false.
+    /// \post \ref peek returns duration::zero.
+    ///
+    /// \throws std::runtime_error If precondition is violated.
+    void reset()
     {
         if (running())
-            _start = clock::now();
+            throw std::runtime_error{"reset was called on a running stopwatch"};
         _elapsed = duration::zero();
     }
     /// \brief Returns the elapsed time since stopwatch was started.
@@ -201,6 +168,60 @@ using stop_watch_with_boost_process_system_cpu_clock = basic_stop_watch<boost::c
 //// \brief Stopwatch using boost::chrono::process_cpu_clock as a source.
 using stop_watch_with_boost_process_cpu_clock = basic_stop_watch<boost::chrono::process_cpu_clock>;
 #endif
+} // namespace v1
+} // namespace chrono
+} // namespace xzr
+namespace xzr
+{
+namespace chrono
+{
+namespace impl
+{
+template <class StopWatch, class Func>
+class benchmark_t
+{
+  private:
+    using stop_watch = StopWatch;
+
+  public:
+    using duration = typename stop_watch::duration;
+
+    explicit benchmark_t(Func&& func) noexcept
+        : _func{std::forward<Func>(func)}
+    {
+    }
+    duration measure(int iterations) noexcept
+    {
+        stop_watch watch{auto_start_t{}};
+        for (int i{}; i < iterations; ++i)
+        {
+            invoke(typename std::is_void<decltype(boost::hof::apply(_func))>::type{});
+        }
+        watch.stop();
+        return watch.peek();
+    }
+
+  private:
+    void invoke(std::true_type) noexcept
+    {
+        boost::hof::apply(_func);
+    }
+    void invoke(std::false_type) noexcept
+    {
+        volatile auto res = boost::hof::apply(_func);
+        static_cast<void>(res);
+    }
+    Func _func;
+};
+} // namespace impl
+} // namespace chrono
+} // namespace xzr
+namespace xzr
+{
+namespace chrono
+{
+inline namespace v1
+{
 /// \brief Named parameter for the sepcifying the amount of iterations.
 class iterations
 {

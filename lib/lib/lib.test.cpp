@@ -99,7 +99,6 @@ BOOST_AUTO_TEST_CASE(reset_stopped_watch)
 {
     stop_watch w{auto_start};
     w.stop();
-    BOOST_TEST(w.peek() > stop_watch::duration::zero());
     w.reset();
     BOOST_TEST(w.peek() == stop_watch::duration::zero());
 }
@@ -108,22 +107,13 @@ BOOST_AUTO_TEST_CASE(reset_running_watch)
     stop_watch w{auto_start};
     BOOST_REQUIRE_THROW(w.reset(), std::runtime_error);
 }
-BOOST_AUTO_TEST_CASE(peek)
+BOOST_AUTO_TEST_CASE(peek_stoped_stop_watch)
 {
-    stop_watch w{};
-    const auto a{w.peek()};
-    BOOST_TEST(a == stop_watch::duration::zero());
-    w.start();
-    const auto b{w.peek()};
-    BOOST_TEST(b > a);
-    const auto c{w.peek()};
-    BOOST_TEST(c > b);
+    stop_watch w{auto_start};
     w.stop();
-    const auto d{w.peek()};
-    const auto e{w.peek()};
-    BOOST_TEST(d == e);
-    w.reset();
-    BOOST_TEST(w.peek() == stop_watch::duration::zero());
+    const auto a{w.peek()};
+    const auto b{w.peek()};
+    BOOST_TEST(a == b);
 }
 BOOST_AUTO_TEST_CASE(peek_with_duration)
 {
@@ -183,7 +173,7 @@ std::string spy_stop_watch::_call_seq{};
 
 BOOST_AUTO_TEST_CASE(uses_given_stop_watch)
 {
-    benchmark<spy_stop_watch::duration, spy_stop_watch>(iterations{1}, []() {});
+    benchmark<spy_stop_watch::duration, spy_stop_watch>(iterations{11}, []() {});
     BOOST_TEST(spy_stop_watch::_call_seq == "_auto_start__stop__peek_");
 }
 BOOST_AUTO_TEST_CASE(measure_sleep_time)

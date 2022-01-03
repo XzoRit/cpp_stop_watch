@@ -56,29 +56,34 @@ struct auto_start_t
 constexpr const auto_start_t auto_start{};
 /// \brief Models a physical stopwatch to measure how much time elapsed between starting and stopping it.
 ///
-/// The precision of this stopwatch depends on the one from the specified clock but a coarser precision can be specified
-/// on each call to \ref peek. To start the stopwatch you can either call start on a default constructed stopwatch or
-/// use auto_start on construction for starting it immediately. After calling \ref stop the elapsed
-/// time can be retrieved witth \ref peek. It is ok to call \ref peek on a running stopwatch to get a snapshot of the
-/// elapsed time. \ref reset can be used to set the elapsed time to zero.
+/// To start the stopwatch you can either call start
+/// on a default constructed stopwatch or use \ref auto_start on construction for starting it immediately.
+///
+/// After calling \ref stop the elapsed time can be retrieved with \ref peek.
+///
+/// It is ok to call \ref peek on a running stopwatch to get a snapshot of the
+/// elapsed time.
+///
+/// \ref reset can be used to set the elapsed time to zero.
 ///
 /// \note Calling \ref start or \ref reset on a running stopwatch and \ref stop on a stopped stopwatch
 /// is an error and throws.
 ///
-/// @tparam Clock Specifies the source for measuring how much time elapsed. It has to model the [named requirement
-/// Clock](https://en.cppreference.com/w/cpp/named_req/Clock)
-template <class Clock>
+/// @tparam Clock Specifies the source for measuring how much time elapsed.
+/// It has to model the [named requirement Clock](https://en.cppreference.com/w/cpp/named_req/Clock).
+///
+/// @tparam Duration Specifies the precision of this stopwatch.
+template <class Clock, class Duration>
 class basic_stop_watch : private impl::stop_watch_state
 {
-  private:
+  public:
+    /// \brief Clock used by this stopwatch.
     using clock = Clock;
-    using time_point = typename clock::time_point;
-
-  public:
-    /// \brief Precision of stopwatch.
-    using duration = typename clock::duration;
-
-  public:
+    /// \brief Precision of this stopwatch.
+    using duration = Duration;
+    /// \brief Stopped stopwatch.
+    ///
+    /// \post is_running returns false.
     basic_stop_watch() = default;
     /// \brief Stopwatch is started immediately.
     ///
@@ -111,7 +116,7 @@ class basic_stop_watch : private impl::stop_watch_state
     {
         if (!running())
             throw std::runtime_error{"stop was called on an already stopped stopwatch"};
-        _elapsed = clock::now() - _start;
+        _elapsed = std::chrono::duration_cast<duration>(clock::now() - _start);
         on_stop();
     }
     /// \brief Reset elapsed time to zero.
@@ -130,14 +135,11 @@ class basic_stop_watch : private impl::stop_watch_state
     ///
     /// Can be called even if stopwatch is running to get a snapshot of the elapsed time since \ref start has been
     /// called.
-    ///
-    /// \tparam Duration Precision to be returned.
-    template <class Duration = duration>
-    Duration peek() const noexcept
+    duration peek() const noexcept
     {
         if (running())
-            return std::chrono::duration_cast<Duration>(clock::now() - _start + _elapsed);
-        return std::chrono::duration_cast<Duration>(_elapsed);
+            return std::chrono::duration_cast<duration>(clock::now() - _start + _elapsed);
+        return std::chrono::duration_cast<duration>(_elapsed);
     }
     /// \brief True if stopwatch is running otherwise false.
     bool is_running() const noexcept
@@ -150,26 +152,37 @@ class basic_stop_watch : private impl::stop_watch_state
     {
         return _elapsed == duration::zero();
     }
+
+  private:
+    using time_point = typename clock::time_point;
+
     time_point _start{};
     duration _elapsed{duration::zero()};
 };
 //// \brief Stopwatch using std::chrono::steady_clock as a source.
-using stop_watch = basic_stop_watch<std::chrono::steady_clock>;
+template <class Precision>
+using stop_watch = basic_stop_watch<std::chrono::steady_clock, Precision>;
 //// \brief Stopwatch using std::chrono::system_clock as a source.
-using system_stop_watch = basic_stop_watch<std::chrono::system_clock>;
+template <class Precision>
+using system_stop_watch = basic_stop_watch<std::chrono::system_clock, Precision>;
 #if defined(BOOST_CHRONO_HAS_THREAD_CLOCK)
 //// \brief Stopwatch using boost::chrono::thread_clock as a source.
-using thread_stop_watch = basic_stop_watch<boost::chrono::thread_clock>;
+template <class Precision>
+using thread_stop_watch = basic_stop_watch<boost::chrono::thread_clock, Precision>;
 #endif
 #if defined(BOOST_CHRONO_HAS_PROCESS_CLOCKS)
 //// \brief Stopwatch using boost::chrono::process_real_cpu_clock as a source.
-using process_real_stop_watch = basic_stop_watch<boost::chrono::process_real_cpu_clock>;
+template <class Precision>
+using process_real_stop_watch = basic_stop_watch<boost::chrono::process_real_cpu_clock, Precision>;
 //// \brief Stopwatch using boost::chrono::process_user_cpu_clock as a source.
-using process_user_stop_watch = basic_stop_watch<boost::chrono::process_user_cpu_clock>;
+template <class Precision>
+using process_user_stop_watch = basic_stop_watch<boost::chrono::process_user_cpu_clock, Precision>;
 //// \brief Stopwatch using boost::chrono::process_system_cpu_clock as a source.
-using process_system_stop_watch = basic_stop_watch<boost::chrono::process_system_cpu_clock>;
+template <class Precision>
+using process_system_stop_watch = basic_stop_watch<boost::chrono::process_system_cpu_clock, Precision>;
 //// \brief Stopwatch using boost::chrono::process_cpu_clock as a source.
-using process_cpu_stop_watch = basic_stop_watch<boost::chrono::process_cpu_clock>;
+template <class Precision>
+using process_cpu_stop_watch = basic_stop_watch<boost::chrono::process_cpu_clock, Precision>;
 #endif
 } // namespace v1
 } // namespace chrono
@@ -247,7 +260,7 @@ class iterations
 ///
 /// @tparam Duration Precision of execution time to be returned.
 /// @tparam Stopwatch Defines the stopwatch to measure execution time with.
-template <class Duration = typename stop_watch::duration, class StopWatch = stop_watch, class Func>
+template <class Duration, class StopWatch = stop_watch<Duration>, class Func>
 inline Duration benchmark(iterations n, Func&& func)
 {
     return std::chrono::duration_cast<Duration>(

@@ -2,14 +2,18 @@
 
 #include <boost/program_options.hpp>
 
+#include <chrono>
 #include <iostream>
 
 namespace po = boost::program_options;
+
+using stop_watch = xzr::chrono::stop_watch<std::chrono::milliseconds>;
+
 namespace
 {
 void run()
 {
-    xzr::chrono::stop_watch w{};
+    stop_watch w{};
     while (true)
     {
         char c{};

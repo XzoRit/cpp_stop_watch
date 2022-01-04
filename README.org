@@ -1,2 +1,15 @@
-[[https://travis-ci.com/XzoRit/cpp_stop_watch.svg?branch%3Dmain][https://travis-ci.com/XzoRit/cpp_stop_watch.svg?branch=main]]
 * stop_watch
+Implements a simple stop watch. It can be customized with a clock as a source.
+Aliases for std.chrono and boost.chrono clock are provided.
+** build
+*** b2
+#+BEGIN_SRC sh
+b2 threading=multi
+#+END_SRC sh
+Otherwise boost::chrono::thread_clock is not available.
+*** cmake
+#+BEGIN_SRC sh
+cmake -B build -S .
+cmake --build build
+ctest --test-dir build
+#+END_SRC sh

@@ -9,7 +9,9 @@
 #if defined(BOOST_CHRONO_HAS_PROCESS_CLOCKS)
 #include <boost/chrono/process_cpu_clocks.hpp>
 #endif
+
 #include <boost/chrono/duration.hpp>
+#include <boost/chrono/system_clocks.hpp>
 
 namespace xzr
 {
@@ -19,6 +21,15 @@ namespace boost_chrono
 {
 inline namespace v1
 {
+//// \brief Stopwatch using boost::chrono::steady_clock as a source.
+template <class Precision>
+using system_stop_watch =
+    basic_stop_watch<boost::chrono::system_clock, Precision>;
+#if defined(BOOST_CHRONO_HAS_CLOCK_STEADY)
+//// \brief Stopwatch using boost::chrono::steady_clock as a source.
+template <class Precision>
+using stop_watch = basic_stop_watch<boost::chrono::steady_clock, Precision>;
+#endif
 #if defined(BOOST_CHRONO_HAS_THREAD_CLOCK)
 //// \brief Stopwatch using boost::chrono::thread_clock as a source.
 template <class Precision>

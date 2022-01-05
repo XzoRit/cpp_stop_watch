@@ -26,8 +26,8 @@ target_sources(
   "${src_dir}/boost_stop_watch.hpp"
   "${src_dir}/cast.cpp"
   "${src_dir}/cast.hpp"
-  "${src_dir}/lib.cpp"
-  "${src_dir}/lib.hpp"
+  "${src_dir}/stop_watch.cpp"
+  "${src_dir}/stop_watch.hpp"
 )
 
 target_include_directories(

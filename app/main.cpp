@@ -1,4 +1,4 @@
-#include <lib/lib.hpp>
+#include <lib/stop_watch.hpp>
 
 #include <boost/program_options.hpp>
 

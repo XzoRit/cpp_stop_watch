@@ -1,11 +1,13 @@
 #include <lib/benchmark.hpp>
-#include <lib/lib.hpp>
+#include <lib/stop_watch.hpp>
 
 #include <boost/test/unit_test.hpp>
 
 #include <chrono>
-#include <iostream>
+#include <stdexcept>
+#include <string>
 #include <thread>
+#include <type_traits>
 
 namespace std
 {

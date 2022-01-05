@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lib/lib.hpp>
+#include <lib/stop_watch.hpp>
 
 #include <boost/chrono/config.hpp>
 #if defined(BOOST_CHRONO_HAS_THREAD_CLOCK)

@@ -27,14 +27,20 @@ lib lib
     : $(sources)
     : <include>$(inc_dir)
       <use>/boost//headers
+      <library>/boost//chrono
     :
     : <include>$(inc_dir)
+      <use>/boost//headers
+      <library>/boost//chrono
     ;
 
 run $(test_sources)
     : --color_output=false
     :
     : <library>lib
+      <use>/boost//headers
+      <library>/boost//chrono
+      <library>/site-config//pthread
       <library>/boost//unit_test_framework
     : test
     ;

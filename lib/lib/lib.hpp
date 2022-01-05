@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/chrono/duration.hpp>
 #include <boost/hof/apply.hpp>
 
 #include <chrono>
@@ -7,19 +8,22 @@
 #include <stdexcept>
 #include <utility>
 
-#if defined(BOOST_CHRONO_HAS_PROCESS_CLOCK)
-#include <boost/chrono/process_cpu_clocks.hpp>
-#endif
-#if defined(BOOST_CHRONO_HAS_THREAD_CLOCK)
-#include <boost/chrono/thread_clock.hpp>
-#endif
-
 namespace xzr
 {
 namespace chrono
 {
 namespace impl
 {
+template <class ToDur, class Rep, class Period>
+ToDur duration_cast(const std::chrono::duration<Rep, Period>& d)
+{
+    return std::chrono::duration_cast<ToDur>(d);
+}
+template <class ToDur, class Rep, class Period>
+ToDur duration_cast(const boost::chrono::duration<Rep, Period>& d)
+{
+    return boost::chrono::duration_cast<ToDur>(d);
+}
 class stop_watch_state
 {
   private:
@@ -39,25 +43,44 @@ class stop_watch_state
         return _running;
     }
 };
-} // namespace impl
-} // namespace chrono
-} // namespace xzr
+}
+}
+}
 namespace xzr
 {
 namespace chrono
 {
 inline namespace v1
 {
+/// \brief Parameter shall not be optimized by compiler.
+#if defined(__GNUC__) or defined(__clang__)
+template <class T>
+inline void do_not_optimize(T&& t)
+{
+    asm volatile("" ::"m"(t) : "memory");
+}
+#else
+#pragma optimize("", off)
+template <class T>
+inline void do_not_optimize(T&& t)
+{
+    reinterpret_cast<char volatile&>(t) =
+        reinterpret_cast<char const volatile&>(t);
+}
+#pragma optimize("", on)
+#endif
 /// \brief Tag type for starting a stopwatch on creation.
 struct auto_start_t
 {
 };
 /// \brief Stopwatch created with this value will start automatically.
 constexpr const auto_start_t auto_start{};
-/// \brief Models a physical stopwatch to measure how much time elapsed between starting and stopping it.
+/// \brief Models a physical stopwatch to measure how much time elapsed between
+/// starting and stopping it.
 ///
 /// To start the stopwatch you can either call start
-/// on a default constructed stopwatch or use \ref auto_start on construction for starting it immediately.
+/// on a default constructed stopwatch or use \ref auto_start on construction
+/// for starting it immediately.
 ///
 /// After calling \ref stop the elapsed time can be retrieved with \ref peek.
 ///
@@ -66,11 +89,12 @@ constexpr const auto_start_t auto_start{};
 ///
 /// \ref reset can be used to set the elapsed time to zero.
 ///
-/// \note Calling \ref start or \ref reset on a running stopwatch and \ref stop on a stopped stopwatch
-/// is an error and throws.
+/// \note Calling \ref start or \ref reset on a running stopwatch and \ref stop
+/// on a stopped stopwatch is an error and throws.
 ///
 /// @tparam Clock Specifies the source for measuring how much time elapsed.
-/// It has to model the [named requirement Clock](https://en.cppreference.com/w/cpp/named_req/Clock).
+/// It has to model the [named requirement
+/// Clock](https://en.cppreference.com/w/cpp/named_req/Clock).
 ///
 /// @tparam Duration Specifies the precision of this stopwatch.
 template <class Clock, class Duration>
@@ -101,7 +125,8 @@ class basic_stop_watch : private impl::stop_watch_state
     void start()
     {
         if (running())
-            throw std::runtime_error{"start was called on an already started stopwatch"};
+            throw std::runtime_error{
+                "start was called on an already started stopwatch"};
         if (is_reset())
             _start = clock::now();
         on_start();
@@ -109,14 +134,16 @@ class basic_stop_watch : private impl::stop_watch_state
     /// \brief Stops the stopwatch.
     ///
     /// \pre \ref is_running returns true.
-    /// \post \ref is_running returns false. Multiple calls to \ref peek return the same value.
+    /// \post \ref is_running returns false. Multiple calls to \ref peek return
+    /// the same value.
     ///
     /// \throws std::runtime_error If precondition is violated.
     void stop()
     {
         if (!running())
-            throw std::runtime_error{"stop was called on an already stopped stopwatch"};
-        _elapsed = std::chrono::duration_cast<duration>(clock::now() - _start);
+            throw std::runtime_error{
+                "stop was called on an already stopped stopwatch"};
+        _elapsed = impl::duration_cast<duration>(clock::now() - _start);
         on_stop();
     }
     /// \brief Reset elapsed time to zero.
@@ -133,13 +160,14 @@ class basic_stop_watch : private impl::stop_watch_state
     }
     /// \brief Returns the elapsed time since stopwatch was started.
     ///
-    /// Can be called even if stopwatch is running to get a snapshot of the elapsed time since \ref start has been
-    /// called.
+    /// Can be called even if stopwatch is running to get a snapshot of the
+    /// elapsed time since \ref start has been called.
     duration peek() const noexcept
     {
         if (running())
-            return std::chrono::duration_cast<duration>(clock::now() - _start + _elapsed);
-        return std::chrono::duration_cast<duration>(_elapsed);
+            return impl::duration_cast<duration>(clock::now() - _start +
+                                                 _elapsed);
+        return impl::duration_cast<duration>(_elapsed);
     }
     /// \brief True if stopwatch is running otherwise false.
     bool is_running() const noexcept
@@ -164,29 +192,11 @@ template <class Precision>
 using stop_watch = basic_stop_watch<std::chrono::steady_clock, Precision>;
 //// \brief Stopwatch using std::chrono::system_clock as a source.
 template <class Precision>
-using system_stop_watch = basic_stop_watch<std::chrono::system_clock, Precision>;
-#if defined(BOOST_CHRONO_HAS_THREAD_CLOCK)
-//// \brief Stopwatch using boost::chrono::thread_clock as a source.
-template <class Precision>
-using thread_stop_watch = basic_stop_watch<boost::chrono::thread_clock, Precision>;
-#endif
-#if defined(BOOST_CHRONO_HAS_PROCESS_CLOCKS)
-//// \brief Stopwatch using boost::chrono::process_real_cpu_clock as a source.
-template <class Precision>
-using process_real_stop_watch = basic_stop_watch<boost::chrono::process_real_cpu_clock, Precision>;
-//// \brief Stopwatch using boost::chrono::process_user_cpu_clock as a source.
-template <class Precision>
-using process_user_stop_watch = basic_stop_watch<boost::chrono::process_user_cpu_clock, Precision>;
-//// \brief Stopwatch using boost::chrono::process_system_cpu_clock as a source.
-template <class Precision>
-using process_system_stop_watch = basic_stop_watch<boost::chrono::process_system_cpu_clock, Precision>;
-//// \brief Stopwatch using boost::chrono::process_cpu_clock as a source.
-template <class Precision>
-using process_cpu_stop_watch = basic_stop_watch<boost::chrono::process_cpu_clock, Precision>;
-#endif
-} // namespace v1
-} // namespace chrono
-} // namespace xzr
+using system_stop_watch =
+    basic_stop_watch<std::chrono::system_clock, Precision>;
+}
+}
+}
 namespace xzr
 {
 namespace chrono
@@ -211,7 +221,8 @@ class benchmark_t
         stop_watch watch{auto_start_t{}};
         for (int i{}; i < iterations; ++i)
         {
-            invoke(typename std::is_void<decltype(boost::hof::apply(_func))>::type{});
+            invoke(typename std::is_void<decltype(boost::hof::apply(
+                       _func))>::type{});
         }
         watch.stop();
         return watch.peek();
@@ -224,14 +235,14 @@ class benchmark_t
     }
     void invoke(std::false_type) noexcept
     {
-        volatile auto res = boost::hof::apply(_func);
-        static_cast<void>(res);
+        volatile auto res{boost::hof::apply(_func)};
+        do_not_optimize(res);
     }
     Func _func;
 };
-} // namespace impl
-} // namespace chrono
-} // namespace xzr
+}
+}
+}
 namespace xzr
 {
 namespace chrono
@@ -263,24 +274,10 @@ class iterations
 template <class Duration, class StopWatch = stop_watch<Duration>, class Func>
 inline Duration benchmark(iterations n, Func&& func)
 {
-    return std::chrono::duration_cast<Duration>(
-        impl::benchmark_t<StopWatch, Func>{std::forward<Func>(func)}.measure(n.get()));
+    return impl::duration_cast<Duration>(
+        impl::benchmark_t<StopWatch, Func>{std::forward<Func>(func)}.measure(
+            n.get()));
 }
-#if defined(__GNUC__) or defined(__clang__)
-template <class T>
-inline void do_not_optimize(T&& t)
-{
-    asm volatile("" ::"m"(t) : "memory");
 }
-#else
-#pragma optimize("", off)
-template <class T>
-inline void do_not_optimize(T&& t)
-{
-    reinterpret_cast<char volatile&>(t) = reinterpret_cast<char const volatile&>(t);
 }
-#pragma optimize("", on)
-#endif
-} // namespace v1
-} // namespace chrono
-} // namespace xzr
+}

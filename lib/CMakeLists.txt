@@ -1,3 +1,8 @@
+find_package(
+  Threads
+  REQUIRED
+)
+
 set(
   inc_dir
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -17,6 +22,8 @@ target_sources(
   PRIVATE
   "${src_dir}/lib.cpp"
   "${src_dir}/lib.hpp"
+  "${src_dir}/boost_stop_watch.cpp"
+  "${src_dir}/boost_stop_watch.hpp"
 )
 
 target_include_directories(
@@ -33,8 +40,9 @@ target_compile_features(
 
 target_link_libraries(
   lib
-  PRIVATE
+  PUBLIC
     Boost::boost
+    Boost::chrono
 )
 
 add_library(
@@ -64,6 +72,9 @@ target_link_libraries(
   lib_test
   PRIVATE
     lib::lib
+    Threads::Threads
+    Boost::boost
+    Boost::chrono
     Boost::unit_test_framework
 )
 

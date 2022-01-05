@@ -30,8 +30,8 @@ ostream& boost_test_print_type(ostream& o, const nanoseconds& ns)
     o << ns.count() << "ns";
     return o;
 }
-} // namespace chrono
-} // namespace std
+}
+}
 namespace
 {
 using namespace std::chrono_literals;
@@ -42,6 +42,7 @@ using xzr::chrono::benchmark;
 using xzr::chrono::do_not_optimize;
 using xzr::chrono::iterations;
 using xzr::chrono::stop_watch;
+
 using stop_watch_ns = stop_watch<std::chrono::nanoseconds>;
 
 BOOST_AUTO_TEST_SUITE(test_chrono)
@@ -125,16 +126,24 @@ BOOST_AUTO_TEST_CASE(peek_with_duration)
 
         stop_watch_ms w{};
 
-        static_assert(std::is_same<stop_watch_ms::duration, std::chrono::milliseconds>::value, "");
-        static_assert(std::is_same<decltype(w.peek()), std::chrono::milliseconds>::value, "");
+        static_assert(std::is_same<stop_watch_ms::duration,
+                                   std::chrono::milliseconds>::value,
+                      "");
+        static_assert(
+            std::is_same<decltype(w.peek()), std::chrono::milliseconds>::value,
+            "");
     }
     {
         using stop_watch_h = stop_watch<std::chrono::hours>;
 
         stop_watch_h w{};
 
-        static_assert(std::is_same<stop_watch_h::duration, std::chrono::hours>::value, "");
-        static_assert(std::is_same<decltype(w.peek()), std::chrono::hours>::value, "");
+        static_assert(
+            std::is_same<stop_watch_h::duration, std::chrono::hours>::value,
+            "");
+        static_assert(
+            std::is_same<decltype(w.peek()), std::chrono::hours>::value,
+            "");
     }
 }
 BOOST_AUTO_TEST_SUITE_END()
@@ -188,23 +197,28 @@ std::string spy_stop_watch::_call_seq{};
 
 BOOST_AUTO_TEST_CASE(uses_given_stop_watch)
 {
-    benchmark<spy_stop_watch::duration, spy_stop_watch>(iterations{11}, []() {});
+    benchmark<spy_stop_watch::duration, spy_stop_watch>(iterations{11},
+                                                        []() {});
     BOOST_TEST(spy_stop_watch::_call_seq == "_auto_start__stop__peek_");
 }
 BOOST_AUTO_TEST_CASE(measure_sleep_time)
 {
     const auto& sleep_dur{250ms};
     {
-        const auto& a{benchmark<std::chrono::milliseconds>(iterations{1},
-                                                           [&sleep_dur]() { std::this_thread::sleep_for(sleep_dur); })};
+        const auto& a{
+            benchmark<std::chrono::milliseconds>(iterations{1}, [&sleep_dur]() {
+                std::this_thread::sleep_for(sleep_dur);
+            })};
         BOOST_TEST(a >= sleep_dur);
     }
     {
         const auto& a{
-            benchmark<std::chrono::seconds>(iterations{1}, [&sleep_dur]() { std::this_thread::sleep_for(sleep_dur); })};
+            benchmark<std::chrono::seconds>(iterations{1}, [&sleep_dur]() {
+                std::this_thread::sleep_for(sleep_dur);
+            })};
         BOOST_TEST(a >= 0s);
     }
 }
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
-} // namespace
+}

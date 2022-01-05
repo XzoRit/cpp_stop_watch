@@ -15,6 +15,7 @@ find_package(
   Boost
   REQUIRED
   COMPONENTS
+    chrono
     program_options
     unit_test_framework
 )
@@ -22,6 +23,7 @@ find_package(
 if(Boost_FOUND)
   set_target_properties(
     Boost::boost
+    Boost::chrono
     Boost::program_options
     Boost::unit_test_framework
     PROPERTIES

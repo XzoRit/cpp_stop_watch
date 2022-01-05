@@ -1,3 +1,4 @@
+#include <lib/benchmark.hpp>
 #include <lib/lib.hpp>
 
 #include <boost/test/unit_test.hpp>

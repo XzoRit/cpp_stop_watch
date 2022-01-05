@@ -20,10 +20,14 @@ add_library(
 target_sources(
   lib
   PRIVATE
-  "${src_dir}/lib.cpp"
-  "${src_dir}/lib.hpp"
+  "${src_dir}/benchmark.cpp"
+  "${src_dir}/benchmark.hpp"
   "${src_dir}/boost_stop_watch.cpp"
   "${src_dir}/boost_stop_watch.hpp"
+  "${src_dir}/cast.cpp"
+  "${src_dir}/cast.hpp"
+  "${src_dir}/lib.cpp"
+  "${src_dir}/lib.hpp"
 )
 
 target_include_directories(
